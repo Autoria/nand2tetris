@@ -1,0 +1,8 @@
+CHIP Xor16 {
+    IN  a[16], b[16];
+    OUT out[16];
+    PARTS:
+        Nand16 (a=a, b=b, out= AnandB);
+        Or16   (a=a, b=b, out= AorB);
+        And16  (a=AnandB, b=AorB, out=out);
+}
