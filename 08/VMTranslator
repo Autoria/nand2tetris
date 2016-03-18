@@ -1,0 +1,28 @@
+import parser08
+import codeWriter
+codewrite = codeWriter.CodeWriter()
+wfile = codewrite.setFileName(r"C:\Users\Liu_100\Desktop\nand2tetris\nand2tetris\projects\08\FunctionCalls\StaticsTest\Class2.vm")
+parser = parser08.Parser(r"C:\Users\Liu_100\Desktop\nand2tetris\nand2tetris\projects\08\FunctionCalls\StaticsTest\Class2.vm")
+#wfile.write('@256\nD=A\n@SP\nM=D\n')
+filename = 'Class2.vm'
+while parser.hasMoreCommands():
+    if parser.commandType() == 'C_PUSH':
+        codewrite.writePushPop(wfile, parser.commandType(), parser.arg1(), parser.arg2(), filename)
+    elif parser.commandType() == 'C_POP':
+        codewrite.writePushPop(wfile, parser.commandType(), parser.arg1(), parser.arg2(), filename)
+    elif parser.commandType() == 'C_ARITHMETIC':
+        codewrite.writeArithmetic(wfile, parser.arg1())
+    elif parser.commandType() == 'C_IF':
+        codewrite.writeIf(wfile, parser.arg1())
+    elif parser.commandType() == 'C_LABEL':
+        codewrite.writeLabel(wfile, parser.arg1())
+    elif parser.commandType() == 'C_GOTO':
+        codewrite.writeGoto(wfile, parser.arg1())
+    elif parser.commandType() == 'C_CALL':
+        codewrite.writeCall(wfile, parser.arg1(), parser.arg2())
+    elif parser.commandType() == 'C_FUNCTION':
+        codewrite.writeFunction(wfile, parser.arg1(), parser.arg2())
+    elif parser.commandType() == 'C_RETURN':
+        codewrite.writeReturn(wfile)
+    parser.advance()
+wfile.close() 
