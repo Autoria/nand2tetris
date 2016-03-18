@@ -1,0 +1,2 @@
+In FibonacciElement.asm, Line 119 was M=M-1 A=M
+but error: Expression involves M, but A=-1 is a illegal address
