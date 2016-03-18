@@ -1,0 +1,125 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/CPU.hdl
+
+/**
+ * The Hack CPU (Central Processing unit), consisting of an ALU,
+ * two registers named A and D, and a program counter named PC.
+ * The CPU is designed to fetch and execute instructions written in 
+ * the Hack machine language. In particular, functions as follows:
+ * Executes the inputted instruction according to the Hack machine 
+ * language specification. The D and A in the language specification
+ * refer to CPU-resident registers, while M refers to the external
+ * memory location addressed by A, i.e. to Memory[A]. The inM input 
+ * holds the value of this location. If the current instruction needs 
+ * to write a value to M, the value is placed in outM, the address 
+ * of the target location is placed in the addressM output, and the 
+ * writeM control bit is asserted. (When writeM==0, any value may 
+ * appear in outM). The outM and writeM outputs are combinational: 
+ * they are affected instantaneously by the execution of the current 
+ * instruction. The addressM and pc outputs are clocked: although they 
+ * are affected by the execution of the current instruction, they commit 
+ * to their new values only in the next time step. If reset==1 then the 
+ * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
+ * than to the address resulting from executing the current instruction. 
+ */
+
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    // Put your code here
+    // i  _  _  a  c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
+    // 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+
+    Not(in=instruction[15], out=aInstruction);
+
+    // Set the A-register if an A-instruction is issued or it is specified as a location.
+    Or(a=aInstruction, b=instruction[5], out=loadA);    ///*****control of the A-Register
+
+    // Don't write to the other data locations if an A-instruction is issued.
+    And(a=instruction[15], b=instruction[4], out=loadD);    ///*****control of the D-DRegister
+    And(a=instruction[15], b=jump, out=loadPC);               ///*****control of the PC
+    And(a=instruction[15], b=instruction[3], out=writeM);   ///***** Write to M or not
+
+    // Treat the instruction as a constant if an A-instruction is issued.
+    Mux16(a=aluOutput, b=instruction, sel=aInstruction, out=aInput);
+
+    // Set the registers according to the proposed architecture.
+    ARegister(in=aInput, load=loadA, out=aRegister, out[0..14]=addressM);
+    DRegister(in=aluOutput, load=loadD, out=dRegister);
+
+    // Conditionally read from memory or the A-register.
+    Mux16(a=aRegister, b=inM, sel=instruction[12], out=aluInput);
+
+    // Configure the ALU with the control bits.
+    ALU(
+
+      // Inputs
+
+      x=dRegister,
+      y=aluInput,
+      zx=instruction[11], // c1
+      nx=instruction[10], // c2
+      zy=instruction[9],  // c3
+      ny=instruction[8],  // c4
+      f=instruction[7],   // c5
+      no=instruction[6],  // c6
+
+      // Outputs
+
+      out=aluOutput,
+      out=outM,
+      zr=zero,
+      ng=neg
+
+    );
+
+    // The conditional jump logic has been extracted into Jump.hdl.
+    Jump(zero=zero, neg=neg, code=instruction[0..2], out=jump);
+
+    // Increment the program counter, or load a new value from the A-register.
+    PC(in=aRegister, load=loadPC, inc=true, reset=reset, out[0..14]=pc);
+}
+}
+
+
+CHIP Jump {
+
+  IN zero,    // indicates x == 0
+     neg,     // indicates x < 0
+     code[3]; // One of the eight jump codes:
+
+           // 000 : nil : No jump
+           // 001 : JGT : If out >  0 jump
+           // 010 : JEQ : If out == 0 jump
+           // 011 : JGE : If out >= 0 jump
+           // 100 : JLT : If out <  0 jump
+           // 101 : JNE : If out != 0 jump
+           // 110 : JLE : If out <= 0 jump
+           // 111 : JMP : Jump
+
+  OUT out;
+
+  PARTS:
+  Or(a=zero, b=neg, out=le);
+  Not(in=le, out=pos);
+
+  And(a=code[0], b=pos,  out=j1);
+  And(a=code[1], b=zero, out=j2);
+  And(a=code[2], b=neg,  out=j3);
+
+  Or(a=j1, b=j2, out=or);
+  Or(a=or, b=j3, out=out);
+}
